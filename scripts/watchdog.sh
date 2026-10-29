@@ -129,14 +129,14 @@ for KEY in "${KEYS_LIST[@]}"; do
                     log "      ✅ 运行健康"
                 fi
 
-                # 获取公开端口并探测
+                # 获取公开端口并探测（超时放宽至 10 秒，并支持自动跟随 301/302 重定向）
                 PORTS_RESP=$(curl -s -m 10 -X GET "${API_BASE}/machines/${M_ID}/ports" -H "Authorization: Bearer ${KEY}" || true)
                 PUBLIC_URLS=$(echo "$PORTS_RESP" | jq -r '.ports[]? | select(.access == "public") | .url' 2>/dev/null || true)
 
                 if [ -n "$PUBLIC_URLS" ]; then
                     while read -r url; do
                         if [ -n "$url" ]; then
-                            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$url" || true)
+                            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 10 -L "$url" || true)
                             log "      🌐 探测公网服务 [${url}]: HTTP ${HTTP_CODE}"
                         fi
                     done <<< "$PUBLIC_URLS"
