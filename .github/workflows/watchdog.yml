@@ -14,16 +14,16 @@ on:
 
 jobs:
   watchdog:
-    name: Multi-Machine Watchdog & Wake
+    name: Multi-Account & Multi-Machine Watchdog
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Multi-Machine Watchdog
+      - name: Run Multi-Account Watchdog
         env:
-          API_KEY: ${{ secrets.INSTABOX_API_KEY }}
-          # 优先使用手动触发时输入的机器列表，否则使用 Secret/Var 中的配置，留空则默认全自动发现
+          # 支持单个或多个 Key（支持逗号隔开或换行）
+          API_KEYS: ${{ secrets.INSTABOX_API_KEYS || secrets.INSTABOX_API_KEY }}
           TARGET_MACHINES: ${{ inputs.target_machines || vars.TARGET_MACHINES || secrets.TARGET_MACHINES || '' }}
         run: |
           chmod +x scripts/watchdog.sh

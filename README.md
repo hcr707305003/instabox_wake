@@ -1,48 +1,54 @@
-# InstaBox Multi-Machine Auto Watchdog (多机器自动监听与复活)
+# InstaBox Multi-Account & Multi-Machine Auto Watchdog (多账号与多机器保活)
 
-用于自动化监听与保活 InstaBox 机器（Free Tier）的 GitHub Actions 守护工作流。已原生升级为**多机器架构**。
+用于自动化监听与保活 InstaBox 机器（Free Tier）的 GitHub Actions 守护工作流。现已全面支持**多账号（多 API Key）**与**多机器**混合调度。
 
 ---
 
 ## 🚀 核心特性
 
-1. **自动发现全量机器（零配置）**：
-   - 默认无需手动指定机器 ID！脚本通过 InstaBox 平台 API 自动拉取当前账号下的**所有机器**。
-   - 以后在 InstaBox 创建新机器后，无需修改任何代码或配置，定时任务会自动扫描并纳管新机器。
-2. **多机器独立状态感知与复活**：
-   - 逐台检测每台机器的运行状态（`running` / `suspended` 等）。
-   - 若某台机器因 8 小时强制上限挂起，自动感知其专属的平台冷却期（`cooldownUntil`），冷却结束后自动执行 `/wake` 唤醒。某台机器冷却中不会阻塞其他机器的处理。
-3. **智能公网端口探测（防 30 分钟空闲休眠）**：
-   - 自动获取每台机器已开放的所有公网 Web 端口并自动发起探测；若机器未暴露公开端口，则自动调用平台活跃度借口保持在线。
-4. **支持白名单模式（可选过滤）**：
-   - 如果账号下某些机器不想保活，可在 GitHub Actions 触发时或通过环境变量指定只保活特定机器。
-5. **适配私人仓库（Private）免费额度**：
-   - 调度周期设为 25 分钟一次，每月仅消耗约 1,720 分钟，完全在 GitHub 免费提供的 2,000 分钟配额内。
+1. **多账号支持（多 API Key）**：
+   - 支持同时管理多个 InstaBox 账号（或多个 Org）；
+   - 在 GitHub Secret 中填入多个 Key（换行或逗号分隔），脚本会自动轮询每个账号，自动识别账号归属人，并分别保活名下的所有机器。
+2. **多机器全自动发现（零配置）**：
+   - 每个账号下的所有机器均自动通过 API 发现，无需手动配置机器 ID。
+   - 以后在任意账号下新建机器，定时任务自动纳管，零运维。
+3. **单次运行极度省额度（完美适配私人仓库）**：
+   - 无论你有几个账号、几台机器，脚本均在**同一个 GitHub Actions 任务中顺序执行**，全过程仅需 5~10 秒；
+   - 避免了 Matrix 并发产生的额外额度消耗，每月消耗固定约为 1,720 分钟，**彻底保障私人仓库在 2,000 分钟免费额度内**。
+4. **多机器独立状态感知与复活**：
+   - 逐台检测状态，若遇到 8 小时上限挂起，自动感知各自的平台冷却期（`cooldownUntil`）并在到期后精准唤醒；某台机器冷却中不会阻断其他账号与机器的检测。
+5. **智能公网端口探测（防 30 分钟空闲休眠）**：
+   - 自动扫描并探测机器已开放的所有公网 Web 端口；未暴露端口的机器则自动调用平台接口记录活跃度。
+6. **密钥安全脱敏输出**：
+   - 日志中所有 API Key 均已做脱敏处理（如 `ibk_tjyy...2e2q`），安全无忧。
 
 ---
 
 ## ⚙️ 快速配置
 
-### 1. 配置 API 密钥（必需）
-1. 打开当前 GitHub 仓库页面；
-2. 点击 **Settings** -> **Secrets and variables** -> **Actions**；
-3. 点击 **New repository secret**，添加如下密钥：
-   - **Name**: `INSTABOX_API_KEY`
-   - **Secret**: 你的 InstaBox API 密钥（格式为 `ibk_...`）
+### 如何配置多个 API Key？
+打开你的 GitHub 仓库：[Settings -> Secrets and variables -> Actions](https://github.com/hcr707305003/instabox_wake/settings/secrets/actions)
 
-### 2. （可选）指定只保活部分机器
-如果不希望全部机器都自动保活，可以在 **Settings** -> **Secrets and variables** -> **Actions** -> **Variables** 标签下添加：
-- **Name**: `TARGET_MACHINES`
-- **Value**: 机器 ID 或机器名称（多个以逗号隔开，例如 `shiroi, m_xxx2`）
+编辑现有的 `INSTABOX_API_KEY`（或新建 `INSTABOX_API_KEYS`），把多个 Key 粘贴进去即可：
 
-*若不配置此项，默认自动保活账号下的全部机器。*
+#### 格式 1：一行一个 Key（推荐）
+```text
+ibk_第一个账号的Key...
+ibk_第二个账号的Key...
+ibk_第三个账号的Key...
+```
+
+#### 格式 2：逗号分隔
+```text
+ibk_第一个账号的Key..., ibk_第二个账号的Key...
+```
+
+*如果你目前只有 1 个 Key，保持原样即可，完全兼容！*
 
 ---
 
 ## 🧪 手动测试
 
 1. 打开仓库的 [Actions 页面](https://github.com/hcr707305003/instabox_wake/actions)；
-2. 在左侧选择 **InstaBox Auto Watchdog**；
-3. 点击右侧 **Run workflow** 下拉框：
-   - 你可以直接点击绿色按钮测试**扫描全量机器**；
-   - 也可以在输入框输入特定的机器名/ID 进行定向测试。
+2. 左侧点击 **InstaBox Auto Watchdog**；
+3. 点击右侧 **Run workflow** 下拉框中的绿色按钮，即可查看多账号扫描输出。
