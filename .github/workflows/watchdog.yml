@@ -6,20 +6,25 @@ on:
     - cron: '*/25 * * * *'
   # 支持在 GitHub Actions 控制台手动点击 "Run workflow" 运行测试
   workflow_dispatch:
+    inputs:
+      target_machines:
+        description: '指定要保活的机器名称或ID（可选，多个用逗号隔开；留空则自动保活全部机器）'
+        required: false
+        default: ''
 
 jobs:
   watchdog:
-    name: Check & Wake InstaBox
+    name: Multi-Machine Watchdog & Wake
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Watchdog Script
+      - name: Run Multi-Machine Watchdog
         env:
-          MACHINE_ID: ${{ secrets.INSTABOX_MACHINE_ID || 'm_agqx76qe5b2o4aqknmyqzefj7i' }}
           API_KEY: ${{ secrets.INSTABOX_API_KEY }}
-          PUBLIC_URL: ${{ secrets.INSTABOX_PUBLIC_URL || 'https://6185-agqx76qe5b2o4aqknmyqzefj7i.instabox.tech' }}
+          # 优先使用手动触发时输入的机器列表，否则使用 Secret/Var 中的配置，留空则默认全自动发现
+          TARGET_MACHINES: ${{ inputs.target_machines || vars.TARGET_MACHINES || secrets.TARGET_MACHINES || '' }}
         run: |
           chmod +x scripts/watchdog.sh
           ./scripts/watchdog.sh
