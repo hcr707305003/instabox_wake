@@ -2,8 +2,8 @@ name: InstaBox Auto Watchdog
 
 on:
   schedule:
-    # 每 15 分钟执行一次（15 可以整除 60，合规的 Cron 步长；公开仓库免额度无限制）
-    - cron: '*/15 * * * *'
+    # 每 15 分钟执行一次（错峰避开整点拥堵：在每小时的第 3、18、33、48 分钟执行）
+    - cron: '3,18,33,48 * * * *'
   # 支持在 GitHub Actions 控制台手动点击 "Run workflow" 运行测试
   workflow_dispatch:
     inputs:
